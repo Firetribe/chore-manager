@@ -178,9 +178,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             sidebar_icon="mdi:broom",
             frontend_url_path=PANEL_PATH,
             config={
-                "_panel_custom": True,
-                "name": "chore-manager-panel",
-                "module_url": PANEL_URL,
+                "_panel_custom": {
+                    "name": "chore-manager-panel",
+                    "module_url": PANEL_URL,
+                    "embed_iframe": False,
+                    "trust_external": False,
+                },
             },
         )
         hass.data[f"{DOMAIN}_panel"] = True
