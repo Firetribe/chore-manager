@@ -7,9 +7,14 @@ const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => 
 }[char]));
 
 class ChoreManagerPanel extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+  }
+
   connectedCallback() {
     if (!this._hass) {
-      this.textContent = "Loading chores...";
+      this.shadowRoot.textContent = "Loading chores...";
     }
   }
 
@@ -20,7 +25,7 @@ class ChoreManagerPanel extends HTMLElement {
     } catch (error) {
       this._signature = undefined;
       console.error("Chore Manager panel failed to render", error);
-      this.textContent = `Chore Manager could not render: ${error.message}`;
+      this.shadowRoot.textContent = `Chore Manager could not render: ${error.message}`;
     }
   }
 
@@ -55,7 +60,7 @@ class ChoreManagerPanel extends HTMLElement {
       ...people.map((person) => `<option value="${escapeHtml(person.entity_id)}" ${person.entity_id === selected ? "selected" : ""}>${escapeHtml(personName(person))}</option>`),
     ].join("");
 
-    this.innerHTML = `
+    this.shadowRoot.innerHTML = `
       <style>
         :host{display:block;color:var(--primary-text-color);padding:clamp(16px,4vw,40px);--line:var(--divider-color,#d8d8d8);--soft:var(--secondary-background-color,#f4f5f2);--accent:var(--success-color,#27815b)}
         .page{max-width:1120px;margin:0 auto}header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:8px 0 22px;border-bottom:2px solid var(--primary-text-color)}
@@ -72,6 +77,7 @@ class ChoreManagerPanel extends HTMLElement {
         <header><h1>${german ? "Aufgaben" : "Chores"}</h1><span class="count">${chores.length} ${german ? (chores.length === 1 ? "Aufgabe" : "Aufgaben") : (chores.length === 1 ? "chore" : "chores")}</span></header>
         <section class="add" aria-labelledby="add-title">
           <h2 id="add-title">${german ? "Aufgabe hinzufügen" : "Add a chore"}</h2>
+          <p id="add-error" role="alert"></p>
           <form id="add-form">
             <label>${german ? "Aufgabe" : "Chore name"}<input name="name" required maxlength="100" placeholder="${german ? "Zum Beispiel: Bad putzen" : "For example: Clean bathroom"}"></label>
             <label>${german ? "Intervall in Tagen" : "Repeat every (days)"}<input name="frequency_days" type="number" min="1" step="1" value="7" required></label>
@@ -97,19 +103,30 @@ class ChoreManagerPanel extends HTMLElement {
         </section>
       </main>`;
 
-    this.querySelector("#add-form").addEventListener("submit", (event) => {
+    this.shadowRoot.querySelector("#add-form").addEventListener("submit", async (event) => {
       event.preventDefault();
       const form = new FormData(event.currentTarget);
-      this._hass.callService("chore_manager", "add_chore", {
-        name: form.get("name").trim(),
-        frequency_days: Number(form.get("frequency_days")),
-        room: form.get("room").trim(),
-      });
-      event.currentTarget.reset();
-      event.currentTarget.elements.frequency_days.value = 7;
+      const submit = event.currentTarget.querySelector("button[type='submit']");
+      submit.disabled = true;
+      this.shadowRoot.querySelector("#add-error").textContent = "";
+      try {
+        await this._hass.callService("chore_manager", "add_chore", {
+          name: form.get("name").trim(),
+          frequency_days: Number(form.get("frequency_days")),
+          room: form.get("room").trim(),
+        });
+        event.currentTarget.reset();
+        event.currentTarget.elements.frequency_days.value = 7;
+        this._signature = undefined;
+      } catch (error) {
+        console.error("Chore Manager could not add chore", error);
+        this.shadowRoot.querySelector("#add-error").textContent = error.message;
+      } finally {
+        submit.disabled = false;
+      }
     });
 
-    this.querySelectorAll(".row").forEach((row) => {
+    this.shadowRoot.querySelectorAll(".row").forEach((row) => {
       const choreId = row.dataset.id;
       const selectedPerson = () => row.querySelector("[data-person]").value;
       row.querySelector("[data-done]").addEventListener("click", () => {

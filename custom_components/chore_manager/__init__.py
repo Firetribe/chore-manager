@@ -23,7 +23,7 @@ SERVICE_UPDATE = "update_chore"
 SERVICE_REMOVE = "remove_chore"
 DATA_STORE = "store"
 PANEL_PATH = "chore-manager"
-PANEL_URL = "/chore_manager/chore-manager-panel.js?v=1.0.3"
+PANEL_URL = "/chore_manager/chore-manager-panel.js?v=1.0.4"
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
