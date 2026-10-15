@@ -9,5 +9,6 @@
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/Firetribe/chore-manager/issues",
   "requirements": [],
+  "single_config_entry": true,
   "version": "1.0.5"
 }
