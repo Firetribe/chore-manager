@@ -1,0 +1,111 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Chore Manager",
+        "description": "Erstelle die Integration Chore Manager."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Only one instance is allowed."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "chore": {
+        "name": "Aufgabe",
+        "state": {
+          "ok": "OK",
+          "due_soon": "Bald fällig",
+          "overdue": "Überfällig"
+        }
+      }
+    }
+  },
+  "services": {
+    "mark_done": {
+      "name": "Mark done",
+      "description": "Mark a chore complete.",
+      "fields": {
+        "chore_id": {
+          "name": "Aufgaben-ID",
+          "description": "Chore identifier."
+        },
+        "entity_id": {
+          "name": "Aufgabe",
+          "description": "Chore sensor."
+        },
+        "person": {
+          "name": "Person",
+          "description": "Person who completed it."
+        }
+      }
+    },
+    "add_chore": {
+      "name": "Add chore",
+      "description": "Add a chore.",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "Chore name."
+        },
+        "room": {
+          "name": "Raum",
+          "description": "Room."
+        },
+        "floor": {
+          "name": "Etage",
+          "description": "Floor."
+        },
+        "frequency_days": {
+          "name": "Häufigkeit (Tage)",
+          "description": "Repeat interval."
+        }
+      }
+    },
+    "update_chore": {
+      "name": "Update chore",
+      "description": "Update a chore.",
+      "fields": {
+        "chore_id": {
+          "name": "Aufgaben-ID",
+          "description": "Chore identifier."
+        },
+        "entity_id": {
+          "name": "Aufgabe",
+          "description": "Chore sensor."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Chore name."
+        },
+        "room": {
+          "name": "Raum",
+          "description": "Room."
+        },
+        "floor": {
+          "name": "Etage",
+          "description": "Floor."
+        },
+        "frequency_days": {
+          "name": "Häufigkeit (Tage)",
+          "description": "Repeat interval."
+        }
+      }
+    },
+    "remove_chore": {
+      "name": "Remove chore",
+      "description": "Remove a chore.",
+      "fields": {
+        "chore_id": {
+          "name": "Aufgaben-ID",
+          "description": "Chore identifier."
+        },
+        "entity_id": {
+          "name": "Aufgabe",
+          "description": "Chore sensor."
+        }
+      }
+    }
+  }
+}

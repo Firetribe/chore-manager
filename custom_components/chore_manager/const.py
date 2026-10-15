@@ -1,0 +1,6 @@
+DOMAIN = "chore_manager"
+PLATFORMS = ["sensor"]
+STORAGE_VERSION = 1
+STORAGE_KEY = DOMAIN
+SIGNAL_UPDATE = f"{DOMAIN}_update"
+SIGNAL_STATIC = f"{DOMAIN}_static"

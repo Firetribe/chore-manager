@@ -1,0 +1,31 @@
+mark_done:
+  name: Mark done
+  description: Mark one or more chores complete.
+  fields:
+    chore_id: {name: Chore ID, selector: {text: {}}}
+    entity_id: {name: Chore, selector: {entity: {integration: chore_manager, domain: sensor, multiple: true}}}
+    person: {name: Person, selector: {entity: {domain: person}}}
+add_chore:
+  name: Add chore
+  description: Add a new chore.
+  fields:
+    name: {name: Name, required: true, selector: {text: {}}}
+    room: {name: Room, selector: {text: {}}}
+    floor: {name: Floor, selector: {text: {}}}
+    frequency_days: {name: Frequency (days), default: 7, selector: {number: {min: 1, mode: box, step: 1}}}
+update_chore:
+  name: Update chore
+  description: Update an existing chore.
+  fields:
+    chore_id: {name: Chore ID, selector: {text: {}}}
+    entity_id: {name: Chore, selector: {entity: {integration: chore_manager, domain: sensor}}}
+    name: {name: Name, selector: {text: {}}}
+    room: {name: Room, selector: {text: {}}}
+    floor: {name: Floor, selector: {text: {}}}
+    frequency_days: {name: Frequency (days), selector: {number: {min: 1, mode: box, step: 1}}}
+remove_chore:
+  name: Remove chore
+  description: Remove a chore.
+  fields:
+    chore_id: {name: Chore ID, selector: {text: {}}}
+    entity_id: {name: Chore, selector: {entity: {integration: chore_manager, domain: sensor}}}

@@ -1,0 +1,1 @@
+{"domain":"chore_manager","name":"Chore Manager","version":"1.0.0","documentation":"https://github.com/Firetribe/chore-manager","issue_tracker":"https://github.com/Firetribe/chore-manager/issues","requirements":[],"dependencies":["http","frontend","person"],"codeowners":["@Firetribe"],"config_flow":true,"integration_type":"service","iot_class":"calculated"}
