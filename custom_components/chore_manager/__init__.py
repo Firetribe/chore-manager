@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import voluptuous as vol
 
-from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.frontend import async_register_built_in_panel, async_remove_panel
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -22,7 +22,8 @@ SERVICE_ADD = "add_chore"
 SERVICE_UPDATE = "update_chore"
 SERVICE_REMOVE = "remove_chore"
 DATA_STORE = "store"
-CARD_URL = "/chore_manager/chore-manager-card.js?v=1.0.1"
+PANEL_PATH = "chore-manager"
+PANEL_URL = "/chore_manager/chore-manager-panel.js?v=1.0.0"
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -31,7 +32,6 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         await hass.http.async_register_static_paths(
             [StaticPathConfig("/chore_manager", str(Path(__file__).parent / "frontend"), False)]
         )
-        add_extra_js_url(hass, CARD_URL)
         hass.data[static_key] = True
     return True
 
@@ -101,9 +101,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def update(call: ServiceCall) -> None:
         for cid in _ids(hass, call.data):
             if cid in store.chores:
-                for key in ("name", "room", "floor", "frequency_days"):
+                for key in (
+                    "name",
+                    "room",
+                    "floor",
+                    "frequency_days",
+                    "done_by",
+                    "done_by_entity",
+                ):
                     if key in call.data:
-                        store.chores[cid][key] = call.data[key]
+                        value = call.data[key]
+                        store.chores[cid][key] = (
+                            (value or None) if key == "done_by_entity" else value
+                        )
         await store.async_save()
         await signal()
 
@@ -143,6 +153,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             vol.Optional("room"): cv.string,
             vol.Optional("floor"): cv.string,
             vol.Optional("frequency_days"): freq,
+            vol.Optional("done_by"): cv.string,
+            vol.Optional("done_by_entity"): cv.string,
         }),
         SERVICE_REMOVE: vol.Schema({
             vol.Optional("chore_id"): id_list,
@@ -158,6 +170,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     for name, func in funcs.items():
         hass.services.async_register(DOMAIN, name, func, schemas[name])
 
+    if not hass.data.get(f"{DOMAIN}_panel"):
+        async_register_built_in_panel(
+            hass,
+            "custom",
+            sidebar_title="Chores",
+            sidebar_icon="mdi:broom",
+            frontend_url_path=PANEL_PATH,
+            config={
+                "_panel_custom": True,
+                "name": "chore-manager-panel",
+                "module_url": PANEL_URL,
+            },
+        )
+        hass.data[f"{DOMAIN}_panel"] = True
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
@@ -166,6 +193,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if ok:
         hass.data[DOMAIN].pop(entry.entry_id, None)
+        if hass.data.pop(f"{DOMAIN}_panel", False):
+            async_remove_panel(hass, PANEL_PATH)
         for name in (SERVICE_MARK_DONE, SERVICE_ADD, SERVICE_UPDATE, SERVICE_REMOVE):
             hass.services.async_remove(DOMAIN, name)
     return ok
