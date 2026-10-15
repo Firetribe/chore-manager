@@ -69,7 +69,7 @@ class ChoreManagerPanel extends HTMLElement {
         label{display:grid;gap:6px;font-size:.82rem;color:var(--secondary-text-color)}input,select,button{font:inherit;color:var(--primary-text-color)}input,select{box-sizing:border-box;width:100%;min-height:42px;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--card-background-color,#fff)}
         button{min-height:40px;padding:8px 14px;border:1px solid var(--line);border-radius:4px;background:var(--card-background-color,#fff);font-weight:650;cursor:pointer}button:hover{border-color:var(--primary-text-color)}button.primary{background:var(--primary-text-color);color:var(--card-background-color,#fff);border-color:var(--primary-text-color)}
         .list{padding-top:22px}.rows{display:grid}.row{display:grid;grid-template-columns:minmax(180px,1.5fr) minmax(130px,.8fr) minmax(140px,.8fr) minmax(180px,1fr) auto;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid var(--line)}
-        .title{font-weight:700}.meta{font-size:.84rem;color:var(--secondary-text-color);margin-top:4px}.due{font-variant-numeric:tabular-nums}.status{display:inline-flex;align-items:center;gap:7px;font-size:.85rem;font-weight:650}.dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}.dot.due_soon{background:var(--warning-color,#d49b22)}.dot.overdue{background:var(--error-color,#c94338)}.person-actions{display:grid;grid-template-columns:minmax(130px,1fr) auto;gap:7px;align-items:center}.actions{display:flex;gap:7px}.empty{padding:30px 0;color:var(--secondary-text-color)}
+        .title{font-weight:700}.meta{font-size:.84rem;color:var(--secondary-text-color);margin-top:4px}.due{font-variant-numeric:tabular-nums}.status{display:inline-flex;align-items:center;gap:7px;font-size:.85rem;font-weight:650}.dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}.dot.due_soon{background:var(--warning-color,#d49b22)}.dot.overdue{background:var(--error-color,#c94338)}.person-actions{display:grid;grid-template-columns:minmax(130px,1fr) auto;gap:7px;align-items:center}.actions{display:flex;gap:7px}.row-feedback{grid-column:1/-1;margin:0;color:var(--secondary-text-color);font-size:.85rem;min-height:1em}.empty{padding:30px 0;color:var(--secondary-text-color)}
         @media(max-width:760px){form{grid-template-columns:1fr 1fr}.row{grid-template-columns:1fr 1fr;gap:10px}.row-main{grid-column:1/-1}.person-actions{grid-column:1/-1}.actions{grid-column:1/-1}.actions button{flex:1}}
         @media(max-width:440px){:host{padding:16px}form{grid-template-columns:1fr}.row{grid-template-columns:1fr}.row-main,.person-actions,.actions{grid-column:auto}.person-actions{grid-template-columns:1fr auto}.actions{display:grid;grid-template-columns:1fr 1fr}}
       </style>
@@ -98,6 +98,7 @@ class ChoreManagerPanel extends HTMLElement {
               <div><div class="meta">${german ? "Zuletzt erledigt von" : "Last done by"}</div><div class="title">${escapeHtml(attributes.done_by || (german ? "Noch nicht erledigt" : "Not completed yet"))}</div></div>
               <div class="person-actions"><select aria-label="${german ? "Person" : "Person"}" data-person>${personOptions(doneBy)}</select><button type="button" data-save>${german ? "Speichern" : "Save person"}</button></div>
               <div class="actions"><button class="primary" type="button" data-done>${german ? "Erledigt" : "Mark done"}</button><button type="button" data-edit>${german ? "Bearbeiten" : "Edit"}</button></div>
+              <p class="row-feedback" role="status" aria-live="polite"></p>
             </article>`;
           }).join("")}</div>` : `<p class="empty">${german ? "Noch keine Aufgaben. Füge oben deine erste Aufgabe hinzu." : "No chores yet. Add your first chore above."}</p>`}
         </section>
@@ -129,35 +130,52 @@ class ChoreManagerPanel extends HTMLElement {
     this.shadowRoot.querySelectorAll(".row").forEach((row) => {
       const choreId = row.dataset.id;
       const selectedPerson = () => row.querySelector("[data-person]").value;
-      row.querySelector("[data-done]").addEventListener("click", () => {
+      const runAction = async (button, service, data, successMessage) => {
+        const feedback = row.querySelector(".row-feedback");
+        button.disabled = true;
+        feedback.textContent = "";
+        try {
+          await this._hass.callService("chore_manager", service, data);
+          feedback.textContent = successMessage;
+          this._signature = undefined;
+        } catch (error) {
+          console.error(`Chore Manager ${service} failed`, error);
+          feedback.textContent = error.message || String(error);
+        } finally {
+          button.disabled = false;
+        }
+      };
+      row.querySelector("[data-done]").addEventListener("click", (event) => {
         const person = selectedPerson();
-        this._hass.callService("chore_manager", "mark_done", {
+        runAction(event.currentTarget, "mark_done", {
           chore_id: choreId,
           ...(person ? { person } : {}),
-        });
+        }, german ? "Erledigt" : "Marked done");
       });
-      row.querySelector("[data-save]").addEventListener("click", () => {
+      row.querySelector("[data-save]").addEventListener("click", (event) => {
         const person = this._hass.states[selectedPerson()];
-        this._hass.callService("chore_manager", "update_chore", {
+        runAction(event.currentTarget, "update_chore", {
           chore_id: choreId,
           done_by: person ? personName(person) : "",
           done_by_entity: person?.entity_id || "",
-        });
+        }, german ? "Gespeichert" : "Saved");
       });
       row.querySelector("[data-edit]").addEventListener("click", () => {
         const name = prompt(german ? "Name der Aufgabe" : "Chore name", row.dataset.name || "");
         if (name === null || !name.trim()) return;
         const interval = prompt(german ? "Intervall in Tagen" : "Repeat every (days)", row.dataset.frequency || 7);
         if (interval === null || !/^\d+$/.test(interval) || Number(interval) < 1) return;
-        this._hass.callService("chore_manager", "update_chore", {
+        runAction(row.querySelector("[data-edit]"), "update_chore", {
           chore_id: choreId,
           name: name.trim(),
           frequency_days: Number(interval),
-        });
+        }, german ? "Gespeichert" : "Saved");
       });
     });
     this._signature = signature;
   }
 }
 
-customElements.define("chore-manager-panel", ChoreManagerPanel);
+if (!customElements.get("chore-manager-panel")) {
+  customElements.define("chore-manager-panel", ChoreManagerPanel);
+}
