@@ -29,6 +29,7 @@ class ChoreManagerPanel extends HTMLElement {
 
     const language = this._hass.locale?.language?.startsWith("de") ? "de" : "en";
     const german = language === "de";
+    const personName = (person) => person.name || person.attributes?.friendly_name || person.entity_id;
     const chores = Object.values(this._hass.states)
       .filter((state) => state.entity_id.startsWith("sensor.") && state.attributes?.chore_id)
       .map((state) => {
@@ -42,7 +43,7 @@ class ChoreManagerPanel extends HTMLElement {
       .sort((left, right) => left.dueAt - right.dueAt);
     const people = Object.values(this._hass.states)
       .filter((state) => state.entity_id.startsWith("person."))
-      .sort((left, right) => left.name.localeCompare(right.name, language));
+      .sort((left, right) => personName(left).localeCompare(personName(right), language));
     const signature = JSON.stringify([
       chores.map(({ state }) => [state.entity_id, state.state, state.attributes]),
       people.map((person) => [person.entity_id, person.name]),
@@ -51,7 +52,7 @@ class ChoreManagerPanel extends HTMLElement {
     const formatDate = new Intl.DateTimeFormat(language, { month: "short", day: "numeric", year: "numeric" });
     const personOptions = (selected) => [
       `<option value="">${german ? "Nicht festgelegt" : "Not set"}</option>`,
-      ...people.map((person) => `<option value="${escapeHtml(person.entity_id)}" ${person.entity_id === selected ? "selected" : ""}>${escapeHtml(person.name)}</option>`),
+      ...people.map((person) => `<option value="${escapeHtml(person.entity_id)}" ${person.entity_id === selected ? "selected" : ""}>${escapeHtml(personName(person))}</option>`),
     ].join("");
 
     this.innerHTML = `
@@ -122,7 +123,7 @@ class ChoreManagerPanel extends HTMLElement {
         const person = this._hass.states[selectedPerson()];
         this._hass.callService("chore_manager", "update_chore", {
           chore_id: choreId,
-          done_by: person?.name || "",
+          done_by: person ? personName(person) : "",
           done_by_entity: person?.entity_id || "",
         });
       });
