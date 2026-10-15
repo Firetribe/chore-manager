@@ -17,6 +17,8 @@ from homeassistant.helpers.typing import ConfigType
 from .const import DOMAIN, PLATFORMS, SIGNAL_UPDATE
 from .store import ChoreStore
 
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
 SERVICE_MARK_DONE = "mark_done"
 SERVICE_ADD = "add_chore"
 SERVICE_UPDATE = "update_chore"
