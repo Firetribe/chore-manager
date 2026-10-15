@@ -7,9 +7,21 @@ const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => 
 }[char]));
 
 class ChoreManagerPanel extends HTMLElement {
+  connectedCallback() {
+    if (!this._hass) {
+      this.textContent = "Loading chores...";
+    }
+  }
+
   set hass(hass) {
     this._hass = hass;
-    this._render();
+    try {
+      this._render();
+    } catch (error) {
+      this._signature = undefined;
+      console.error("Chore Manager panel failed to render", error);
+      this.textContent = `Chore Manager could not render: ${error.message}`;
+    }
   }
 
   _render() {
@@ -36,7 +48,6 @@ class ChoreManagerPanel extends HTMLElement {
       people.map((person) => [person.entity_id, person.name]),
     ]);
     if (signature === this._signature) return;
-    this._signature = signature;
     const formatDate = new Intl.DateTimeFormat(language, { month: "short", day: "numeric", year: "numeric" });
     const personOptions = (selected) => [
       `<option value="">${german ? "Nicht festgelegt" : "Not set"}</option>`,
@@ -127,6 +138,7 @@ class ChoreManagerPanel extends HTMLElement {
         });
       });
     });
+    this._signature = signature;
   }
 }
 
