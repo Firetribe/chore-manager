@@ -29,12 +29,9 @@ PANEL_URL = "/chore_manager/chore-manager-panel.js?v=1.0.5"
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    static_key = f"{DOMAIN}_static"
-    if not hass.data.get(static_key):
-        await hass.http.async_register_static_paths(
-            [StaticPathConfig("/chore_manager", str(Path(__file__).parent / "frontend"), False)]
-        )
-        hass.data[static_key] = True
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig("/chore_manager", str(Path(__file__).parent / "frontend"), False)]
+    )
     return True
 
 
