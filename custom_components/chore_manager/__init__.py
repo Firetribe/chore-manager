@@ -12,6 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv, dispatcher
 from homeassistant.helpers.entity_registry import async_get as async_get_registry
+from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN, PLATFORMS, SIGNAL_UPDATE
 from .store import ChoreStore
@@ -22,6 +23,17 @@ SERVICE_UPDATE = "update_chore"
 SERVICE_REMOVE = "remove_chore"
 DATA_STORE = "store"
 CARD_URL = "/chore_manager/chore-manager-card.js?v=1.0.1"
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    static_key = f"{DOMAIN}_static"
+    if not hass.data.get(static_key):
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig("/chore_manager", str(Path(__file__).parent / "frontend"), False)]
+        )
+        add_extra_js_url(hass, CARD_URL)
+        hass.data[static_key] = True
+    return True
 
 
 def _base_id(hass: HomeAssistant, value: str) -> str | None:
@@ -145,14 +157,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     }
     for name, func in funcs.items():
         hass.services.async_register(DOMAIN, name, func, schemas[name])
-
-    static_key = f"{DOMAIN}_static"
-    if not hass.data.get(static_key):
-        await hass.http.async_register_static_paths(
-            [StaticPathConfig("/chore_manager", str(Path(__file__).parent / "frontend"), False)]
-        )
-        add_extra_js_url(hass, CARD_URL)
-        hass.data[static_key] = True
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
